@@ -33,52 +33,114 @@
 #         deploy_key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
 #         publish_dir: dist/testcode
 #         enable_jekyll: true
-name: GitHub Pages
+# name: GitHub Pages
+
+# on:
+#   push:
+#     branches:
+#     - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Configure AWS Credentials
+#       uses: aws-actions/configure-aws-credentials@v1
+#       with:
+#         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+#         aws-region: eu-central-1
+
+#     - name: Checkout
+#       uses: actions/checkout@v2
+
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v2
+#       with:
+#         node-version: 16
+
+#     - name: Install dependencies
+#       run: npm install
+
+#     - name: Run tests
+#       run: npm run test:headless
+      
+#     - name: GitHub Script
+#       uses: actions/github-script@v2.1.0
+#       with:
+#         script: |
+#           github.rest.git.createRef({
+#             owner: context.repo.owner,
+#             repo: context.repo.repo,
+#             ref: 'refs/tags/${{ github.event.head_commit.message }}',
+#             sha: context.sha
+#           })
+
+#     - name: Build
+#       run: npm run build:prod
+
+#     - name: Deploy
+#       if: success()
+#       run: aws s3 sync ./dist/testcode s3://thanostestcicd
+
+name: Prepare Release and Merge
 
 on:
   push:
     branches:
-    - main
+      - v*
 
 jobs:
-  deploy:
+  prepare-release:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
-        aws-region: eu-central-1
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: 16
+      - name: Install dependencies
+        run: npm install
 
-    - name: Install dependencies
-      run: npm install
+      - name: Check commit message and run tests
+        run: |
+          if [[ $(git log --format=%B -n 1 ${{ github.sha }}) =~ ^\[prepare\ v\([0-9]+\.[0-9]+\.[0-9]+-rc)\]$ ]]; then
+            echo "Valid commit message format"
+            npm test
+          else
+            echo "Invalid commit message format"
+            exit 1
+          fi
 
-    - name: Run tests
-      run: npm run test:headless
-      
-    - name: GitHub Script
-      uses: actions/github-script@v2.1.0
-      with:
-        script: |
-          github.rest.git.createRef({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: 'refs/tags/${{ github.event.head_commit.message }}',
-            sha: context.sha
-          })
+      - name: Extract version from commit message
+        id: extract_version
+        run: echo "::set-output name=version::${BASH_REMATCH[1]}"
 
-    - name: Build
-      run: npm run build:prod
+      - name: Create tag
+        id: create_tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a v${{ steps.extract_version.outputs.version }} -m "Version v${{ steps.extract_version.outputs.version }}"
 
-    - name: Deploy
-      if: success()
-      run: aws s3 sync ./dist/testcode s3://thanostestcicd
+      - name: Push tag
+        run: git push origin v${{ steps.extract_version.outputs.version }}
+
+  merge-to-main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Merge to main
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git checkout main
+          git merge --no-ff ${{ github.ref }}
+          git push origin main
