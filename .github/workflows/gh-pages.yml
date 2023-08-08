@@ -132,19 +132,26 @@ jobs:
       #         exit 1
       #       fi
         
-      - name: Create tag from commit message
-        id: extract_version
-        run: echo "::set-output name=version::${BASH_REMATCH[1]}"
+      # - name: Create tag from commit message
+      #   id: extract_version
+      #   run: echo "::set-output name=version::${BASH_REMATCH[1]}"
 
       - name: Create tag
         id: create_tag
         run: |
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
           git config --global user.name "${{ github.actor }}"
-          git tag -a "$version" -m "Version $version"
-          git push origin "$version"  # Push the created tag
+          commit_message=$(git log --format=%B -n 1 ${{ github.sha }})
+          if [[ $commit_message =~ \[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\] ]]; then
+            version=${BASH_REMATCH[1]}
+            git tag -a "$version" -m "Version $version"
+            git push origin "$version"  # Push the created tag
+          else
+            echo "Invalid commit message format"
+            exit 1
+          fi
 
-
+          
   merge-to-main:
     needs: prepare-release
     runs-on: ubuntu-latest
