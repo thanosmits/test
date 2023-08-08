@@ -107,7 +107,7 @@ jobs:
 
       - name: Check commit message and run tests
         run: |
-          if [[ $(git log --format=%B -n 1 158416113c77ef3620b07eddfe150d5b00991c13) =~ ^\[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\]$ ]]; then
+          if [[ $(git log --format=%B -n 1 ${{ github.sha }}) =~ ^\[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\]$ ]]; then
             echo "Valid commit message format"
             # Rest of your code here
           else
