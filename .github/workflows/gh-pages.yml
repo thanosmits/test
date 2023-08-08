@@ -105,16 +105,33 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # - name: Check commit message and run tests
+      #   run: |
+      #     if [[ $(git log --format=%B -n 1 ${{ github.sha }}) =~ ^\[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\]$ ]]; then
+      #       echo "Valid commit message format"
+      #       # Rest of your code here
+      #     else
+      #       echo "Invalid commit message format"
+      #       exit 1
+      #     fi
+
       - name: Check commit message and run tests
         run: |
-          if [[ $(git log --format=%B -n 1 ${{ github.sha }}) =~ ^\[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\]$ ]]; then
-            echo "Valid commit message format"
-            # Rest of your code here
-          else
-            echo "Invalid commit message format"
-            exit 1
-          fi
-
+            commit_message=$(git log --format=%B -n 1 ${{ github.sha }})
+            if echo "$commit_message" | jq -e '.[0] | contains("[prepare-release v")' > /dev/null; then
+              version=$(echo "$commit_message" | jq -r 'match("\\[prepare-release v([0-9]+\\.[0-9]+\\.[0-9]+-rc)\\]") | .captures[0].string')
+              if [ -n "$version" ]; then
+                echo "Valid commit message format"
+                npm test
+              else
+                echo "Invalid version string format"
+                exit 1
+              fi
+            else
+              echo "Invalid commit message format"
+              exit 1
+            fi
+        
       - name: Extract version from commit message
         id: extract_version
         run: echo "::set-output name=version::${BASH_REMATCH[1]}"
