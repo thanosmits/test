@@ -132,7 +132,7 @@ jobs:
       #         exit 1
       #       fi
         
-      - name: Extract version from commit message
+      - name: Create tag from commit message
         id: extract_version
         run: echo "::set-output name=version::${BASH_REMATCH[1]}"
 
@@ -145,13 +145,11 @@ jobs:
           if [[ $commit_message =~ \[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\] ]]; then
             version=${BASH_REMATCH[1]}
             git tag -a "$version" -m "Version $version"
+            git push origin "$version"  # Push the created tag
           else
             echo "Invalid commit message format"
             exit 1
           fi
-
-      - name: Push tag
-        run: git push origin v${{ steps.extract_version.outputs.version }}
 
   merge-to-main:
     needs: prepare-release
