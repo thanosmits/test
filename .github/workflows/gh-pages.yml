@@ -141,7 +141,8 @@ jobs:
         run: |
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
           git config --global user.name "${{ github.actor }}"
-          git tag -a v${{ steps.extract_version.outputs.version }} -m "Version v${{ steps.extract_version.outputs.version }}"
+          version=${BASH_REMATCH[1]}
+          git tag -a "$version" -m "Version $version"
 
       - name: Push tag
         run: git push origin v${{ steps.extract_version.outputs.version }}
