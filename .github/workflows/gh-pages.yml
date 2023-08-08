@@ -82,7 +82,6 @@
 #     - name: Deploy
 #       if: success()
 #       run: aws s3 sync ./dist/testcode s3://thanostestcicd
-
 name: Prepare Release and Merge
 
 on:
@@ -108,7 +107,7 @@ jobs:
 
       - name: Check commit message and run tests
         run: |
-          if [[ $(git log --format=%B -n 1 ${{ github.sha }}) =~ ^\[prepare\ v\([0-9]+\.[0-9]+\.[0-9]+-rc)\]$ ]]; then
+          if [[ $(git log --format=%B -n 1 ${{ github.sha }}) =~ ^\[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\]$ ]]; then
             echo "Valid commit message format"
             npm test
           else
