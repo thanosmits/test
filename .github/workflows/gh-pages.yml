@@ -88,7 +88,7 @@ name: Prepare Release and Merge
 on:
   push:
     branches:
-      - release/*
+      - v*
 
 jobs:
   prepare-release:
