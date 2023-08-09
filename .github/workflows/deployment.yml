@@ -6,7 +6,7 @@ on:
       - v*
 
 jobs:
-  prepare-release:
+  run-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +23,12 @@ jobs:
 
       - name: Run tests
         run: npm run test:headless
+  
+  create-tag:
+    needs: run-tests
+    runs-on: ubuntu-latest
 
+    steps:
       - name: Create tag
         id: create_tag
         run: |
@@ -40,7 +45,7 @@ jobs:
           fi
 
   development:
-    needs: prepare-release
+    needs: create-tag
     runs-on: ubuntu-latest
     environment: production
     steps:
