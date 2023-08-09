@@ -3,7 +3,7 @@ name: Deploy AWS
 on:
   push:
     branches:
-    - main
+    - v*
 
 jobs:
   deploy:
@@ -30,17 +30,6 @@ jobs:
     - name: Run tests
       run: npm run test:headless
       
-    # - name: GitHub Script
-    #   uses: actions/github-script@v2.1.0
-    #   with:
-    #     script: |
-    #       github.rest.git.createRef({
-    #         owner: context.repo.owner,
-    #         repo: context.repo.repo,
-    #         ref: 'refs/tags/${{ github.event.head_commit.message }}',
-    #         sha: context.sha
-    #       })
-
     - name: Build
       run: npm run build:prod
 
