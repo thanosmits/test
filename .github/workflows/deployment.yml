@@ -86,9 +86,12 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16
+    
+    - name: Install dependencies
+      run: npm install
 
     - name: Build
-      run: npm run build
+      run: npm run build:prod
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -113,6 +116,9 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16
+    
+    - name: Install dependencies
+      run: npm install
 
     - name: Build
       run: npm run build:prod
