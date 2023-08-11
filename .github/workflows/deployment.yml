@@ -88,13 +88,14 @@ jobs:
     needs: development
     runs-on: ubuntu-latest
     environment: staging
+    env:
+      LATEST_TAG: ${{ needs.create-tag.outputs.latest_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: retrieve output
-        run: |
-          echo "LATEST_TAG=${{ needs.create-tag.outputs.latest_tag }}"
+      - name: Print Latest Tag
+        run: echo "LATEST_TAG=${LATEST_TAG}"
 
       - name: Create Staging Branch
         run: |
