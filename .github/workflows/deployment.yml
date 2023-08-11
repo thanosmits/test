@@ -93,11 +93,8 @@ jobs:
         # Set the staging branch name (customize as needed)
         STAGING_BRANCH_NAME="staging-${version}"
 
-        # Fetch the latest changes from the base branch (e.g., develop or main)
-        git fetch origin develop:develop
-
         # Create and push the staging branch
-        git checkout -b $STAGING_BRANCH_NAME develop
+        git checkout -b $STAGING_BRANCH_NAME
         git push origin $STAGING_BRANCH_NAME
 
     - name: Setup Node.js
