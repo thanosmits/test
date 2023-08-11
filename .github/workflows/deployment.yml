@@ -3,7 +3,7 @@ name: Deployment
 on:
   push:
     branches:
-      - release/*
+      - release/v*
 
 jobs:
   run-tests:
