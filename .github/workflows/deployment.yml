@@ -38,7 +38,7 @@ jobs:
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
           git config --global user.name "${{ github.actor }}"
           commit_message=$(git log --format=%B -n 1 ${{ github.sha }})
-          if [[ $commit_message =~ \[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha|qc)(-[0-9]+)?) ] ]]; then
+          if [[ $commit_message =~ \[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha|qc)(-[0-9]+)?) ]]; then
             version=${BASH_REMATCH[1]}
             git tag -a "$version" -m "Version $version"
             git push origin "$version"  # Push the created tag
