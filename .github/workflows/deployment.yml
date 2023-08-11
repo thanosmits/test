@@ -92,15 +92,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Create Branch
-        id: create_branch
-        uses: lablnet/create-branch-from-tag@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ github.ref }}
-          owner: ${{ github.repository_owner }} # https://docs.github.com/en/actions/learn-github-actions/contexts#example-contents-of-the-github-context
-          repo: ${{ github.event.repository.name }} # https://www.reddit.com/r/github/comments/tjkj6f/get_repo_name_on_github_actions_without_owner/
+
+      - name: Get last tag
+        id: last_tag
+        run: |
+          last_tag=$(git describe --tags --abbrev=0)
+          echo "::set-output name=tag::$last_tag"
+          
+      - name: Create Staging Branch
+        run: |
+          tag="${{ steps.last_tag.outputs.tag }}"
+          staging_branch="staging-$tag"
+          git checkout -b $staging_branch
+          git push origin $staging_branch
 
       - name: Setup Node.js
         uses: actions/setup-node@v2
