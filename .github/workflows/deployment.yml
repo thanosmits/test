@@ -85,13 +85,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - name: Get Latest Commit Tag
+      id: get_latest_tag
+      run: |
+        latest_tag=$(git describe --tags --abbrev=0)
+        echo "::set-output name=latest_tag::$latest_tag"
+
     - name: Create Staging Branch
       run: |
-        # Get version commit
-        version=${BASH_REMATCH[1]}
         
         # Set the staging branch name (customize as needed)
-        STAGING_BRANCH_NAME="staging-${version}"
+        STAGING_BRANCH_NAME="staging-${latest_tag}"
 
         # Create and push the staging branch
         git checkout -b $STAGING_BRANCH_NAME
