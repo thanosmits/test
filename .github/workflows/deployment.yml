@@ -88,18 +88,20 @@ jobs:
     needs: development
     runs-on: ubuntu-latest
     environment: staging
-    env:
-      LATEST_TAG: ${{ needs.create-tag.outputs.latest_tag }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Print Latest Tag
-        run: echo "LATEST_TAG=${LATEST_TAG}"
+      - name: Set Latest Tag
+        run: echo "${{ needs.create-tag.outputs.latest_tag }}" > latest_tag.txt
+  
 
       - name: Create Staging Branch
         run: |
-
+          # Read the latest_tag from the file
+          LATEST_TAG=$(cat latest_tag.txt)
+          
           # Set the staging branch name (customize as needed)
           STAGING_BRANCH_NAME="staging-${LATEST_TAG}" 
 
