@@ -90,27 +90,20 @@ jobs:
     environment: staging
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set Latest Tag
-        run: echo "${{ needs.create-tag.outputs.latest_tag }}" > latest_tag.txt
-  
-
-      - name: Create Staging Branch
-        run: |
-          # Read the latest_tag from the file
-          LATEST_TAG=$(cat latest_tag.txt)
-          
-          # Set the staging branch name (customize as needed)
-          STAGING_BRANCH_NAME="staging-${LATEST_TAG}" 
-
-          # Create and push the staging branch
-          git checkout -b $STAGING_BRANCH_NAME
-          git push origin $STAGING_BRANCH_NAME
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Branch
+        id: create_branch
+        uses: lablnet/create-branch-from-tag@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}
+          owner: ${{ github.repository_owner }} # https://docs.github.com/en/actions/learn-github-actions/contexts#example-contents-of-the-github-context
+          repo: ${{ github.event.repository.name }} # https://www.reddit.com/r/github/comments/tjkj6f/get_repo_name_on_github_actions_without_owner/
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v2
         with:
           node-version: 16
 
