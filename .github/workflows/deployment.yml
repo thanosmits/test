@@ -47,6 +47,16 @@ jobs:
             exit 1
           fi
 
+      - name: Get Latest Commit Tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0)
+          echo "::set-output name=latest_tag::$latest_tag"
+      
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        latest_tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
+
   development:
     needs: create-tag
     runs-on: ubuntu-latest
@@ -85,17 +95,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Get Latest Commit Tag
-      id: get_latest_tag
-      run: |
-        latest_tag=$(git describe --tags --abbrev=0)
-        echo "::set-output name=latest_tag::$latest_tag"
+    - name: Set Latest Commit Tag as Environment Variable
+      run: echo "LATEST_TAG=${{ needs.create-tag.outputs.latest_tag }}" >> $GITHUB_ENV
 
     - name: Create Staging Branch
       run: |
         
         # Set the staging branch name (customize as needed)
-        STAGING_BRANCH_NAME="staging-${latest_tag}"
+        STAGING_BRANCH_NAME="staging-${LATEST_TAG}" 
 
         # Create and push the staging branch
         git checkout -b $STAGING_BRANCH_NAME
