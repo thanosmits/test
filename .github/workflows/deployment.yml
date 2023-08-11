@@ -3,7 +3,7 @@ name: Deployment
 on:
   push:
     branches:
-      - v*
+      - release/*
 
 jobs:
   run-tests:
@@ -38,7 +38,7 @@ jobs:
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
           git config --global user.name "${{ github.actor }}"
           commit_message=$(git log --format=%B -n 1 ${{ github.sha }})
-          if [[ $commit_message =~ \[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-rc)\] ]]; then
+          if [[ $commit_message =~ \[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha|qc)(-[0-9]+)?) ] ]]; then
             version=${BASH_REMATCH[1]}
             git tag -a "$version" -m "Version $version"
             git push origin "$version"  # Push the created tag
@@ -84,6 +84,21 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Create Staging Branch
+      run: |
+        # Get version commit
+        version=${BASH_REMATCH[1]}
+        
+        # Set the staging branch name (customize as needed)
+        STAGING_BRANCH_NAME="staging-${version}"
+
+        # Fetch the latest changes from the base branch (e.g., develop or main)
+        git fetch origin develop:develop
+
+        # Create and push the staging branch
+        git checkout -b $STAGING_BRANCH_NAME develop
+        git push origin $STAGING_BRANCH_NAME
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
