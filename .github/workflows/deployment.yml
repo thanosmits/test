@@ -27,9 +27,8 @@ jobs:
   create-tag:
     needs: run-tests
     runs-on: ubuntu-latest
-
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      latest_tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
 
     steps:
       - name: Checkout code
@@ -45,7 +44,6 @@ jobs:
             version=${BASH_REMATCH[1]}
             git tag -a "v$version" -m "Version v$version"
             git push origin "v$version"  # Push the created tag
-            echo "v$version" >> $GITHUB_ENV
           else
             echo "Invalid commit message format"
             exit 1
@@ -54,8 +52,7 @@ jobs:
       - name: Get Latest Commit Tag
         id: get_latest_tag
         run: |
-          latest_tag=$(git describe --tags --abbrev=0)
-          echo "::set-output name=latest_tag::$latest_tag"
+          echo "latest_tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
 
   development:
     needs: create-tag
@@ -95,10 +92,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set Latest Commit Tag as Environment Variable
-        run: echo "LATEST_TAG=${{ env.VERSION }}" >> $GITHUB_ENV
-        env:
-          VERSION: ${{ needs.create-tag.outputs.latest_tag }}
+      - name: retrieve output
+        run: |
+          echo "LATEST_TAG=${{ needs.create-tag.outputs.latest_tag }}"
 
       - name: Create Staging Branch
         run: |
