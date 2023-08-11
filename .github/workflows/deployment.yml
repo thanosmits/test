@@ -23,10 +23,14 @@ jobs:
 
       - name: Run tests
         run: npm run test:headless
-  
+
   create-tag:
     needs: run-tests
     runs-on: ubuntu-latest
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      latest_tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
 
     steps:
       - name: Checkout code
@@ -52,110 +56,106 @@ jobs:
         run: |
           latest_tag=$(git describe --tags --abbrev=0)
           echo "::set-output name=latest_tag::$latest_tag"
-      
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        latest_tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
 
   development:
     needs: create-tag
     runs-on: ubuntu-latest
     environment: development
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Build
-      run: npm run build
+      - name: Build
+        run: npm run build
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
-        aws-region: eu-central-1
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+          aws-region: eu-central-1
 
-    - name: Deploy
-      if: success()
-      run: aws s3 sync ./dist/testcode s3://thanostestcicd
+      - name: Deploy
+        if: success()
+        run: aws s3 sync ./dist/testcode s3://thanostestcicd
 
   staging:
     needs: development
     runs-on: ubuntu-latest
     environment: staging
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Set Latest Commit Tag as Environment Variable
-      run: echo "LATEST_TAG=${{ needs.create-tag.outputs.latest_tag }}" >> $GITHUB_ENV
+      - name: Set Latest Commit Tag as Environment Variable
+        run: echo "LATEST_TAG=${{ needs.create-tag.outputs.latest_tag }}" >> $GITHUB_ENV
 
-    - name: Create Staging Branch
-      run: |
-        
-        # Set the staging branch name (customize as needed)
-        STAGING_BRANCH_NAME="staging-${LATEST_TAG}" 
+      - name: Create Staging Branch
+        run: |
 
-        # Create and push the staging branch
-        git checkout -b $STAGING_BRANCH_NAME
-        git push origin $STAGING_BRANCH_NAME
+          # Set the staging branch name (customize as needed)
+          STAGING_BRANCH_NAME="staging-${LATEST_TAG}" 
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-    
-    - name: Install dependencies
-      run: npm install
+          # Create and push the staging branch
+          git checkout -b $STAGING_BRANCH_NAME
+          git push origin $STAGING_BRANCH_NAME
 
-    - name: Build
-      run: npm run build:prod
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
-        aws-region: eu-central-1
+      - name: Install dependencies
+        run: npm install
 
-    - name: Deploy
-      if: success()
-      run: aws s3 sync ./dist/testcode s3://thanostestcicd
+      - name: Build
+        run: npm run build:prod
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+          aws-region: eu-central-1
+
+      - name: Deploy
+        if: success()
+        run: aws s3 sync ./dist/testcode s3://thanostestcicd
 
   production:
     needs: staging
     runs-on: ubuntu-latest
     environment: production
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-    
-    - name: Install dependencies
-      run: npm install
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
 
-    - name: Build
-      run: npm run build:prod
+      - name: Install dependencies
+        run: npm install
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
-        aws-region: eu-central-1
+      - name: Build
+        run: npm run build:prod
 
-    - name: Deploy
-      if: success()
-      run: aws s3 sync ./dist/testcode s3://thanostestcicd
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+          aws-region: eu-central-1
+
+      - name: Deploy
+        if: success()
+        run: aws s3 sync ./dist/testcode s3://thanostestcicd
