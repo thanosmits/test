@@ -2,8 +2,14 @@ name: Deployment
 
 on:
   push:
+    # Target the release/v1.0 ,release/v2.0 ... branches 
     branches:
       - release/v*
+
+    # this will run if there were changes outside 
+    # of the .github/workflows folder
+    paths-ignore:
+      - '.github/workflows/*'
 
 jobs:
   run-tests:
