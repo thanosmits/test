@@ -1,0 +1,35 @@
+name: Test workflow
+on:
+    pull_request:
+        types:
+            - opened
+        branches:
+            - main
+    
+    workflow_dispatch:
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Output event data
+              run: echo "${{ toJson(github) }}"
+
+            - name: Get code
+              uses: actions/checkout@v3
+
+            - name: Install dependancies
+              run: npm ci
+
+            - name: Test code
+              run: npm run test:headless
+
+            - name: Build code
+              run: npm run build
+
+            - name: Deploy project
+              run: echo "Deploying..."
+
+            # - name: Azure Static Web Apps Deploy
+            #   uses: Azure/static-web-apps-deploy@v1

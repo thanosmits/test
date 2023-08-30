@@ -1,0 +1,159 @@
+name: Deployment
+
+on:
+  push:
+    branches:
+      - release/v*
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm run test:headless
+
+  create-tag:
+    needs: run-tests
+    runs-on: ubuntu-latest
+    outputs:
+      latest_tag: ${{ steps.get_latest_tag.outputs.latest_tag }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Create tag
+        id: create_tag
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          commit_message=$(git log --format=%B -n 1 ${{ github.sha }})
+          if [[ $commit_message =~ \[prepare-release\ v([0-9]+\.[0-9]+\.[0-9]+-(rc|beta|alpha|qc)(-[0-9]+)?) ]]; then
+            version=${BASH_REMATCH[1]}
+            git tag -a "v$version" -m "Version v$version"
+            git push origin "v$version"  # Push the created tag
+          else
+            echo "Invalid commit message format"
+            exit 1
+          fi
+
+      - name: Get Latest Commit Tag
+        id: get_latest_tag
+        run: |
+          echo "latest_tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+
+  development:
+    needs: create-tag
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+          aws-region: eu-central-1
+
+      - name: Deploy
+        if: success()
+        run: aws s3 sync ./dist/testcode s3://thanostestcicd
+
+  staging:
+    needs: development
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get last tag
+        id: last_tag
+        run: |
+          last_tag=$(git describe --tags --abbrev=0)
+          echo "::set-output name=tag::$last_tag"
+          
+      - name: Create Staging Branch
+        run: |
+          tag="${{ steps.last_tag.outputs.tag }}"
+          staging_branch="staging-$tag"
+          git checkout -b $staging_branch
+          git push origin $staging_branch
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build:prod
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+          aws-region: eu-central-1
+
+      - name: Deploy
+        if: success()
+        run: aws s3 sync ./dist/testcode s3://thanostestcicd
+
+  production:
+    needs: staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build:prod
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ID }}
+          aws-region: eu-central-1
+
+      - name: Deploy
+        if: success()
+        run: aws s3 sync ./dist/testcode s3://thanostestcicd
